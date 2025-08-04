@@ -1,36 +1,237 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CarShop Backend
 
-## Getting Started
+A RESTful API built with Next.js and Supabase (PostgreSQL) to power a mobile application for purchasing cars. The backend supports user authentication, product browsing, cart management, secure payments, real-time chat, store location mapping, and cart notifications.
 
-First, run the development server:
+## Features
+
+- 🔐 **Authentication**: User signup and login with secure credential management via Supabase Auth
+- 🚗 **Product Listing**: Fetch, sort, and filter car products with detailed views
+- 🛒 **Cart Management**: Add, update, remove, and view cart items with dynamic total calculation
+- 💳 **Billing**: Process payments using Stripe (sandbox mode; adaptable to VNPay/ZaloPay)
+- 🔔 **Notifications**: Provide cart item count for badge updates on the mobile app
+- 📍 **Map Integration**: Expose store location data for Google Maps display
+- 💬 **Real-Time Chat**: Enable users to communicate with store representatives using Supabase's real-time subscriptions
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router, TypeScript)
+- **Database**: PostgreSQL (via Supabase)
+- **ORM**: Prisma
+- **Authentication**: Supabase Auth
+- **Payment Gateway**: Stripe (sandbox; adaptable to VNPay/ZaloPay)
+- **Validation**: Zod
+- **Deployment**: Vercel (recommended)
+- **Other**: Supabase Realtime for chat, environment variables for configuration
+
+## Prerequisites
+
+- Node.js (v18 or higher)
+- Supabase account and project
+- Stripe account (for sandbox testing)
+- Vercel account (for deployment)
+- Git
+
+## Setup Instructions
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-username/carshop-backend.git
+cd carshop-backend
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure Environment Variables
+
+Create a `.env.local` file in the root directory with the following:
+
+```env
+# Database
+DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL="https://[project-ref].supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="[your-anon-key]"
+SUPABASE_SERVICE_ROLE_KEY="[your-service-role-key]"
+
+# Stripe
+STRIPE_SECRET_KEY="sk_test_..."
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+
+# JWT Secret (for additional security)
+JWT_SECRET="your-super-secret-jwt-key-here"
+
+# Store Location (for map integration)
+STORE_LATITUDE="10.8231"
+STORE_LONGITUDE="106.6297"
+STORE_ADDRESS="123 Car Street, Ho Chi Minh City, Vietnam"
+```
+
+**How to obtain the values:**
+
+1. **DATABASE_URL and Supabase keys**: Get from your Supabase project dashboard
+2. **STRIPE_SECRET_KEY**: Get from Stripe's dashboard (test mode)
+3. **STRIPE_WEBHOOK_SECRET**: Create a webhook endpoint in Stripe dashboard and copy the signing secret
+
+### 4. Set Up Database
+
+Apply the schema to Supabase:
+
+```bash
+npx prisma db push
+```
+
+Enable Row-Level Security (RLS) in Supabase for tables with policies like:
+
+```sql
+CREATE POLICY user_cart_access ON "CartItem" USING (user_id = auth.uid());
+CREATE POLICY user_order_access ON "Order" USING (user_id = auth.uid());
+CREATE POLICY user_message_access ON "Message" USING (user_id = auth.uid());
+```
+
+### 5. Generate Prisma Client
+
+```bash
+npx prisma generate
+```
+
+### 6. Run the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The API will be available at `http://localhost:3000/api`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database Schema
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The database is managed by PostgreSQL via Supabase, with the following key tables:
 
-## Learn More
+- **User**: Stores user data (email, username, phone, address) linked to Supabase's auth.users via authId
+- **Product**: Contains car details (name, price, image URLs, brand, model, specs, etc.)
+- **CartItem**: Tracks products in a user's cart with quantities
+- **Order**: Records purchases with billing/shipping info and status (PENDING, PAID, etc.)
+- **OrderItem**: Links products to orders with purchase-time prices
+- **Payment**: Logs Stripe payment details
+- **Message**: Stores chat messages for real-time communication
 
-To learn more about Next.js, take a look at the following resources:
+See `prisma/schema.prisma` for the full schema.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API Endpoints
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+All endpoints are prefixed with `/api`.
 
-## Deploy on Vercel
+| Endpoint | Method | Description | Authentication |
+|----------|--------|-------------|----------------|
+| `/auth/signup` | POST | Register a new user | None |
+| `/auth/login` | POST | Log in an existing user | None |
+| `/products` | GET | Fetch products with sorting/filtering | None |
+| `/products/[id]` | GET | Get detailed product information | None |
+| `/cart` | GET | View user's cart | JWT (Supabase) |
+| `/cart` | POST | Add item to cart | JWT |
+| `/cart` | PUT | Update cart item quantity | JWT |
+| `/cart` | DELETE | Remove item or clear cart | JWT |
+| `/billing` | POST | Process payment and create order | JWT |
+| `/notifications` | GET | Get cart item count for badge | JWT |
+| `/store/location` | GET | Get store location for map display | None |
+| `/chat` | GET/POST | Fetch or send chat messages | JWT |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Example Request (Add to Cart)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+curl -X POST http://localhost:3000/api/cart \
+  -H "Authorization: Bearer <supabase-jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{"productId": "uuid", "quantity": 1}'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "cart-item-id",
+    "userId": "user-id",
+    "productId": "product-id",
+    "quantity": 1,
+    "product": {
+      "id": "product-id",
+      "name": "Toyota Camry 2023",
+      "price": 25000.00,
+      "brand": "Toyota",
+      "model": "Camry"
+    }
+  },
+  "message": "Item added to cart successfully"
+}
+```
+
+## Security
+
+- **Authentication**: Supabase Auth handles user credentials and JWT issuance
+- **Row-Level Security**: Enabled in Supabase to restrict data access (e.g., users only see their own cart)
+- **Input Validation**: Zod validates API request bodies
+- **Environment Variables**: Sensitive data (e.g., Stripe keys) stored securely in `.env.local`
+
+## Deployment
+
+### Supabase Setup
+
+1. Create a project in Supabase
+2. Apply the database schema using Prisma
+3. Configure RLS policies
+4. Set up authentication providers
+
+### Vercel Deployment
+
+1. Push the repository to GitHub
+2. Import the project into Vercel
+3. Set environment variables in Vercel dashboard
+4. Deploy
+
+### Testing
+
+- Use Supabase's sandbox environment for development
+- Use Stripe's test keys for payment testing
+- Test all endpoints with proper authentication
+
+## Development Notes
+
+- **Real-Time Chat**: Implemented using Supabase Realtime subscriptions on the Message table
+- **Payments**: Stripe is used for sandbox testing; adapt to VNPay/ZaloPay by updating the payment service with their APIs
+- **Notifications**: The `/notifications` endpoint provides cart item counts for mobile app badge updates
+- **Map**: The `/store/location` endpoint returns static or database-stored coordinates for Google Maps integration
+
+## Future Improvements
+
+- Add support for VNPay/ZaloPay for localized payments
+- Implement advanced filtering (e.g., by car specifications)
+- Add admin APIs for managing products and orders
+- Enhance chat with multimedia support (e.g., images)
+- Add order tracking and status updates
+- Implement inventory management
+- Add user profile management
+- Implement push notifications
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## Contact
+
+For questions or support, contact [trandinhhung717@gmail.com] or open an issue on GitHub.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
