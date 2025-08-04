@@ -15,7 +15,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:api": "tsx src/scripts/test-api.ts",
-    "test:structure": "tsx src/scripts/test-api-structure.ts"
+    "test:structure": "tsx src/scripts/test-api-structure.ts",
+    "test:auth": "tsx src/scripts/test-auth.ts"
   },
   "dependencies": {
     "react": "19.1.0",
