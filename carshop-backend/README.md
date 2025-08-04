@@ -196,6 +196,13 @@ curl -X POST http://localhost:3000/api/cart \
 3. Set environment variables in Vercel dashboard
 4. Deploy
 
+**Troubleshooting Common Vercel Deployment Issues:**
+
+- **Prisma Client Error**: The build script now includes `prisma generate` to ensure the Prisma client is generated during build
+- **ESLint Errors**: Added `@typescript-eslint` dependencies to resolve parser issues
+- **Environment Variables**: Make sure all required environment variables are set in Vercel dashboard
+- **Database Connection**: Ensure your Supabase database is accessible from Vercel's servers
+
 ### Testing
 
 - Use Supabase's sandbox environment for development
