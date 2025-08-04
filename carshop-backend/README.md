@@ -175,10 +175,11 @@ curl -X POST http://localhost:3000/api/cart \
 
 ## Security
 
-- **Authentication**: Supabase Auth handles user credentials and JWT issuance
-- **Row-Level Security**: Enabled in Supabase to restrict data access (e.g., users only see their own cart)
+- **Authentication**: Custom JWT authentication with bcrypt password hashing
+- **JWT Claims**: Tokens include user ID, email, username, and expiration time
+- **Password Security**: Passwords are hashed using bcrypt with 12 salt rounds
 - **Input Validation**: Zod validates API request bodies
-- **Environment Variables**: Sensitive data (e.g., Stripe keys) stored securely in `.env.local`
+- **Environment Variables**: Sensitive data (e.g., JWT secret, Stripe keys) stored securely in `.env.local`
 
 ## Deployment
 
@@ -206,9 +207,12 @@ curl -X POST http://localhost:3000/api/cart \
 
 ### Testing
 
-- Use Supabase's sandbox environment for development
+- Use the seeded test user for authentication testing:
+  - Email: `test@example.com`
+  - Password: `password123`
 - Use Stripe's test keys for payment testing
-- Test all endpoints with proper authentication
+- Test all endpoints with proper authentication using JWT tokens
+- Run `npm run db:seed` to reset database with sample data
 
 ## Development Notes
 

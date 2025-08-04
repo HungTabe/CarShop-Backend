@@ -1,58 +1,44 @@
 import { NextRequest } from 'next/server'
 import { loginSchema } from '@/types'
-import { createServerSupabaseClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
+import { comparePassword, generateToken } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const validatedData = loginSchema.parse(body)
 
-    const supabase = createServerSupabaseClient()
-
-    // For server-side auth, we'll use a different approach
-    // First, let's check if the user exists in our database
-    const dbUser = await prisma.user.findUnique({
-      where: { email: validatedData.email }
-    })
-
-    if (!dbUser) {
-      return Response.json(
-        { success: false, error: 'Invalid credentials' },
-        { status: 401 }
-      )
-    }
-
-    // For now, we'll return a simple success response
-    // In a real implementation, you'd want to verify the password
-    const authData = { user: { id: dbUser.authId }, session: { access_token: 'dummy-token' } }
-    const authError = null
-
-    if (authError) {
-      return Response.json(
-        { success: false, error: 'Invalid credentials' },
-        { status: 401 }
-      )
-    }
-
-    if (!authData.user) {
-      return Response.json(
-        { success: false, error: 'Login failed' },
-        { status: 500 }
-      )
-    }
-
-    // Get user from our database
+    // Find user by email
     const user = await prisma.user.findUnique({
-      where: { authId: authData.user.id }
+      where: { email: validatedData.email }
     })
 
     if (!user) {
       return Response.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
+        { success: false, error: 'Invalid credentials' },
+        { status: 401 }
       )
     }
+
+    // Verify password
+    const isPasswordValid = await comparePassword(validatedData.password, user.password)
+    
+    if (!isPasswordValid) {
+      return Response.json(
+        { success: false, error: 'Invalid credentials' },
+        { status: 401 }
+      )
+    }
+
+    // Generate JWT token with user claims
+    const token = generateToken({
+      id: user.id,
+      authId: user.authId,
+      email: user.email,
+      username: user.username || undefined,
+      phone: user.phone || undefined,
+      address: user.address || undefined,
+    })
 
     return Response.json({
       success: true,
@@ -62,7 +48,7 @@ export async function POST(request: NextRequest) {
         username: user.username,
         phone: user.phone,
         address: user.address,
-        accessToken: authData.session?.access_token,
+        accessToken: token,
       },
       message: 'Login successful',
     })

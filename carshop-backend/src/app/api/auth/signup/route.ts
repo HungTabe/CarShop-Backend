@@ -1,45 +1,48 @@
 import { NextRequest } from 'next/server'
 import { signupSchema } from '@/types'
-import { createServerSupabaseClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
+import { hashPassword, generateToken } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const validatedData = signupSchema.parse(body)
 
-    const supabase = createServerSupabaseClient()
-
-    // Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: validatedData.email,
-      password: validatedData.password,
-      email_confirm: true,
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: validatedData.email }
     })
 
-    if (authError) {
+    if (existingUser) {
       return Response.json(
-        { success: false, error: authError.message },
-        { status: 400 }
+        { success: false, error: 'User already exists' },
+        { status: 409 }
       )
     }
 
-    if (!authData.user) {
-      return Response.json(
-        { success: false, error: 'Failed to create user' },
-        { status: 500 }
-      )
-    }
+    // Hash password
+    const hashedPassword = await hashPassword(validatedData.password)
 
     // Create user in our database
     const user = await prisma.user.create({
       data: {
-        authId: authData.user.id,
+        authId: `local_${Date.now()}`, // Generate local auth ID
         email: validatedData.email,
+        password: hashedPassword,
         username: validatedData.username,
         phone: validatedData.phone,
         address: validatedData.address,
       },
+    })
+
+    // Generate JWT token
+    const token = generateToken({
+      id: user.id,
+      authId: user.authId,
+      email: user.email,
+      username: user.username || undefined,
+      phone: user.phone || undefined,
+      address: user.address || undefined,
     })
 
     return Response.json({
@@ -50,6 +53,7 @@ export async function POST(request: NextRequest) {
         username: user.username,
         phone: user.phone,
         address: user.address,
+        accessToken: token,
       },
       message: 'User registered successfully',
     })
