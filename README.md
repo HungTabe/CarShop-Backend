@@ -4,6 +4,9 @@
 ## Project Overview
 CarShop Backend is a RESTful API built with **Next.js** and **Supabase (PostgreSQL)** to power a mobile application for purchasing cars. The backend supports user authentication, product browsing, cart management, secure payments, real-time chat, store location mapping, and cart notifications. It is designed to be scalable, secure, and integrated with Supabase for authentication and real-time features, using Prisma as the ORM for database interactions.
 
+<img width="1920" height="1024" alt="image" src="https://github.com/user-attachments/assets/5eca9ac5-af11-4d83-80e2-ad81d2898466" />
+
+
 ### Features
 - **Authentication**: User signup and login with secure credential management via Supabase Auth.
 - **Product Listing**: Fetch, sort, and filter car products with detailed views.
