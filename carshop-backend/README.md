@@ -199,7 +199,8 @@ curl -X POST http://localhost:3000/api/cart \
 **Troubleshooting Common Vercel Deployment Issues:**
 
 - **Prisma Client Error**: The build script now includes `prisma generate` to ensure the Prisma client is generated during build
-- **ESLint Errors**: Added `@typescript-eslint` dependencies to resolve parser issues
+- **ESLint Errors**: Simplified ESLint configuration to use Next.js defaults and avoid dependency conflicts
+- **Dependency Conflicts**: Added `.npmrc` and `--legacy-peer-deps` to handle peer dependency conflicts
 - **Environment Variables**: Make sure all required environment variables are set in Vercel dashboard
 - **Database Connection**: Ensure your Supabase database is accessible from Vercel's servers
 
